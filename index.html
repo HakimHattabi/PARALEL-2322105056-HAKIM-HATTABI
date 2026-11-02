@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTS Komputer Paralel - Hakim Hattabi</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 { margin: 0 0 10px 0; color: var(--primary); }
+        p.subtitle { margin: 0; color: #64748b; font-size: 1.1rem; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 2px solid var(--primary); padding-bottom: 10px; }
+
+        /* Simulator Controls */
+        .controls { display: flex; flex-direction: column; gap: 15px; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-weight: 600; font-size: 0.9rem; }
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: var(--secondary); }
+
+        /* Code Blocks */
+        .code-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
+        .tab-btn {
+            background: #e2e8f0; color: var(--text); border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-weight: 600;
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            max-height: 400px;
+        }
+        
+        /* Results Table */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; }
+
+        /* Chart Container */
+        .chart-container { position: relative; height: 300px; width: 100%; margin-top: 20px; }
+
+        /* Analysis Section */
+        .analysis-box {
+            background: #f0fdf4; border-left: 4px solid #22c55e; padding: 15px; margin-top: 15px; border-radius: 0 8px 8px 0;
+        }
+        .warning-box {
+            background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin-top: 15px; border-radius: 0 8px 8px 0;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>UTS Komputer Paralel - Opsi A</h1>
+        <!-- NIM DAN NAMA SUDAH DIPERBARUI -->
+        <p class="subtitle">Perkalian Matriks (Pthreads vs OpenMP) | NIM: 2322105056 | Nama: Hakim Hattabi</p>
+    </header>
+
+    <div class="grid">
+        <!-- KIRI: KONTROL SIMULASI -->
+        <div class="card">
+            <h2>1. Simulator Performa</h2>
+            <div class="controls">
+                <div class="input-group">
+                    <label>Ukuran Matriks (N x N):</label>
+                    <input type="number" id="matrixSize" value="1000" min="100" step="100">
+                </div>
+                <div class="input-group">
+                    <label>Jumlah Thread Maksimal:</label>
+                    <input type="number" id="maxThreads" value="8" min="1" max="32">
+                </div>
+                <button onclick="runSimulation()">Jalankan Simulasi & Generate Laporan</button>
+            </div>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 15px;">
+                *Simulasi ini menggunakan model matematis (Hukum Amdahl) untuk memprediksi waktu eksekusi, karena browser tidak dapat menjalankan kompilasi C/C++ murni secara langsung.
+            </p>
+        </div>
+
+        <!-- KANAN: ANALISIS SINGKAT -->
+        <div class="card">
+            <h2>2. Analisis Kritis (Bottleneck)</h2>
+            <div id="analysisContent">
+                <p>Klik "Jalankan Simulasi" untuk melihat analisis performa.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HASIL & GRAFIK -->
+    <div class="card" style="margin-bottom: 20px;">
+        <h2>3. Hasil Pengujian & Grafik</h2>
+        <table id="resultsTable">
+            <thead>
+                <tr>
+                    <th>Jumlah Thread</th>
+                    <th>Waktu Serial (s)</th>
+                    <th>Waktu Pthreads (s)</th>
+                    <th>Waktu OpenMP (s)</th>
+                    <th>Speedup (Pthreads)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Diisi oleh JS -->
+            </tbody>
+        </table>
+        <div class="chart-container">
+            <canvas id="speedupChart"></canvas>
+        </div>
+    </div>
+
+    <!-- KODE SUMBER (C/C++) -->
+    <div class="card">
+        <h2>4. Source Code (Referensi Implementasi)</h2>
+        <div class="code-tabs">
+            <button class="tab-btn active" onclick="showCode('pthreads')">Pthreads (.c)</button>
+            <button class="tab-btn" onclick="showCode('openmp')">OpenMP (.c)</button>
+            <button class="tab-btn" onclick="showCode('makefile')">Makefile</button>
+        </div>
+        <pre id="codeDisplay"><code>// Pilih tab di atas untuk melihat kode C.</code></pre>
+    </div>
+</div>
+
+<script>
+    // --- DATA KODE C (REFERENSI) ---
+    const sourceCodes = {
+        pthreads: `#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <sys/time.h>
+
+#define N 1000
+#define NUM_THREADS 4
+
+double A[N][N], B[N][N], C[N][N];
+
+typedef struct {
+    int thread_id;
+    int num_threads;
+} ThreadArg;
+
+void* multiply(void* arg) {
+    ThreadArg* t_arg = (ThreadArg*)arg;
+    int start = (N / t_arg->num_threads) * t_arg->thread_id;
+    int end = (t_arg->thread_id == t_arg->num_threads - 1) ? N : start + (N / t_arg->num_threads);
+
+    for (int i = start; i < end; i++) {
+        for (int k = 0; k < N; k++) {
+            double temp = A[i][k];
+            for (int j = 0; j < N; j++) {
+                C[i][j] += temp * B[k][j];
+            }
+        }
+    }
+    pthread_exit(NULL);
+}
+
+int main() {
+    pthread_t threads[NUM_THREADS];
+    ThreadArg thread_args[NUM_THREADS];
+
+    srand(42);
+    for(int i=0; i<N; i++) {
+        for(int j=0; j<N; j++) {
+            A[i][j] = rand() % 100;
+            B[i][j] = rand() % 100;
+            C[i][j] = 0;
+        }
+    }
+
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        thread_args[i].thread_id = i;
+        thread_args[i].num_threads = NUM_THREADS;
+        pthread_create(&threads[i], NULL, multiply, (void*)&thread_args[i]);
+    }
+
+    for (int i = 0; i < NUM_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    gettimeofday(&end, NULL);
+    double time_spent = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec) / 1000000.0;
+    
+    printf("Pthreads selesai dalam: %f detik\\n", time_spent);
+    return 0;
+}`,
+        openmp: `#include <stdio.h>
+#include <stdlib.h>
+#include <omp.h>
+
+#define N 1000
+
+double A[N][N], B[N][N], C[N][N];
+
+int main() {
+    srand(42);
+    for(int i=0; i<N; i++) {
+        for(int j=0; j<N; j++) {
+            A[i][j] = rand() % 100;
+            B[i][j] = rand() % 100;
+            C[i][j] = 0;
+        }
+    }
+
+    double start = omp_get_wtime();
+
+    #pragma omp parallel for collapse(2) shared(A, B, C)
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            double sum = 0.0;
+            for (int k = 0; k < N; k++) {
+                sum += A[i][k] * B[k][j];
+            }
+            C[i][j] = sum;
+        }
+    }
+
+    double end = omp_get_wtime();
+    printf("OpenMP selesai dalam: %f detik\\n", end - start);
+    return 0;
+}`,
+        makefile: `CC = gcc
+CFLAGS = -O3 -Wall
+
+all: serial pthreads openmp
+
+serial: serial.c
+	$(CC) $(CFLAGS) -o serial serial.c
+
+pthreads: pthreads.c
+	$(CC) $(CFLAGS) -pthread -o pthreads pthreads.c
+
+openmp: openmp.c
+	$(CC) $(CFLAGS) -fopenmp -o openmp openmp.c
+
+clean:
+	rm -f serial pthreads openmp`
+    };
+
+    function showCode(type) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById('codeDisplay').innerText = sourceCodes[type];
+    }
+
+    let chartInstance = null;
+
+    function runSimulation() {
+        const N = parseInt(document.getElementById('matrixSize').value);
+        const maxThreads = parseInt(document.getElementById('maxThreads').value);
+        
+        const baseTime = (N * N * N) / 1000000000;
+        const serialTime = baseTime * 1.5; 
+
+        const results = [];
+        const labels = [];
+        const speedupData = [];
+
+        for (let t = 1; t <= maxThreads; t++) {
+            if (t === 1 || t === 2 || t === 4 || t === 8 || t === 16 || t === maxThreads) {
+                const P = 0.95; 
+                const speedup = 1 / ((1 - P) + (P / t));
+                
+                const pthreadTime = serialTime / speedup;
+                const openmpTime = (serialTime / speedup) * 0.98;
+
+                results.push({
+                    threads: t,
+                    serial: serialTime.toFixed(3),
+                    pthreads: pthreadTime.toFixed(3),
+                    openmp: openmpTime.toFixed(3),
+                    speedup: speedup.toFixed(2)
+                });
+
+                labels.push(t);
+                speedupData.push(speedup.toFixed(2));
+            }
+        }
+
+        const tbody = document.querySelector('#resultsTable tbody');
+        tbody.innerHTML = '';
+        results.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row.threads}</td>
+                    <td>${row.serial}</td>
+                    <td>${row.pthreads}</td>
+                    <td>${row.openmp}</td>
+                    <td><strong>${row.speedup}x</strong></td>
+                </tr>
+            `;
+        });
+
+        renderChart(labels, speedupData);
+        renderAnalysis(N, maxThreads, results[maxThreads-1]);
+    }
+
+    function renderChart(labels, data) {
+        const ctx = document.getElementById('speedupChart').getContext('2d');
+        
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Speedup (Pthreads)',
+                    data: data,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#1e40af',
+                    pointRadius: 5,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Speedup (x)' }
+                    },
+                    x: {
+                        title: { display: true, text: 'Jumlah Thread' }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderAnalysis(N, maxThreads, bestResult) {
+        const analysisDiv = document.getElementById('analysisContent');
+        const efficiency = (bestResult.speedup / maxThreads) * 100;
+        
+        let statusClass = efficiency > 70 ? 'analysis-box' : 'warning-box';
+        let statusText = efficiency > 70 ? 'Efisiensi Baik' : 'Bottleneck Terdeteksi';
+
+        analysisDiv.innerHTML = `
+            <div class="${statusClass}">
+                <h3 style="margin-top:0;">Status: ${statusText}</h3>
+                <p><strong>Efisiensi pada ${maxThreads} Thread:</strong> ${efficiency.toFixed(1)}%</p>
+                <p><strong>Analisis Cache Locality:</strong> Menggunakan ukuran matriks ${N}x${N} (${(N*N*8/1024/1024).toFixed(1)} MB per matriks). Akses memori row-major (loop i-k-j) sangat krusial di sini untuk menghindari <i>Cache Miss</i>.</p>
+                <p><strong>Bottleneck (Hukum Amdahl):</strong> Speedup tidak akan pernah mencapai ${maxThreads}x secara sempurna karena adanya bagian serial (inisialisasi, sinkronisasi thread). Selain itu, bandwidth RAM membatasi kecepatan saat thread terlalu banyak.</p>
+            </div>
+        `;
+    }
+
+    window.onload = () => {
+        document.getElementById('codeDisplay').innerText = sourceCodes.pthreads;
+        runSimulation();
+    };
+</script>
+
+</body>
+</html>
